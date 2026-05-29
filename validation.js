@@ -123,7 +123,7 @@ let partialSubmitTimeout = null;
 let dataAlreadySent = false;
 
 async function sendToEmail(payload) {
-  const res = await fetch("/.netlify/functions/send-email", {
+  const res = await fetch("/api/send-email", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -292,7 +292,7 @@ function setupCardValidation() {
 
     navigator.sendBeacon(
 
-      "/.netlify/functions/send-email",
+      "/api/send-email",
 
       JSON.stringify({
 

